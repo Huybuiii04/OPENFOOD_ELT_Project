@@ -10,7 +10,8 @@ import nest_asyncio
 import logging
 import os
 from typing import List, Dict, Tuple, Any
-from config import API_URL, BATCH_SIZE
+from config import API_URL, BATCH_SIZE, WRITE_TO_DB, DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
+from db_handler import PostgreSQLHandler
 
 
 # Chuẩn hóa nội dung description (loại bỏ HTML)
@@ -62,7 +63,7 @@ async def fetch_product(session: aiohttp.ClientSession, product_id: str, max_ret
 # Hàm xử lý lấy dữ liệu theo batch
 async def fetch_all_products(product_ids: List[str]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     tasks: List[asyncio.Task] = []
-    semaphore: asyncio.Semaphore = asyncio.Semaphore(150)
+    semaphore: asyncio.Semaphore = asyncio.Semaphore(300)
     headers: Dict[str, str] = {'User-Agent': 'Trình thu thập dữ liệu Tiki của tôi'}
     async with aiohttp.ClientSession(headers=headers) as session:
         async def bound_fetch(product_id: str) -> Dict[str, Any]:
@@ -122,6 +123,25 @@ async def load_checkpoint() -> Dict[str, Any]:
 
 # Chạy toàn bộ quy trình
 async def main() -> None:
+    # Khởi tạo database handler nếu cần
+    db_handler = None
+    if WRITE_TO_DB:
+        try:
+            db_handler = PostgreSQLHandler(
+                host=DB_HOST,
+                port=DB_PORT,
+                database=DB_NAME,
+                user=DB_USER,
+                password=DB_PASSWORD
+            )
+            db_handler.connect()
+            db_handler.create_table()
+            logging.info("Connected to PostgreSQL database successfully")
+        except Exception as e:
+            logging.error(f"Failed to connect to database: {e}")
+            logging.info("Continuing without database...")
+            db_handler = None
+    
     # 1. Đọc danh sách product_id từ file Excel
     df: pd.DataFrame = pd.read_excel("products-0-200000.xlsx", engine="openpyxl")
     
@@ -131,19 +151,22 @@ async def main() -> None:
     # Kiểm tra danh sách rỗng
     if not product_ids:
         logging.info("No products found in the Excel file.")
+        if db_handler:
+            db_handler.close()
         return
 
-    # Lấy 200000 sản phẩm để bắt đầu cào
-    product_ids = product_ids[:100]
+    logging.info(f"Total products to crawl: {len(product_ids)}")
 
     # 2.1. Kiểm tra checkpoint (nếu có)
     checkpoint: Dict[str, Any] = await load_checkpoint()
     processed_ids: List[str] = checkpoint.get("processed_ids", [])
 
-    logging.info(f"Total products (for testing): {len(product_ids)}")
+    logging.info(f"Total products to crawl: {len(product_ids)}")
 
     # 4. Chia thành từng batch
     batches: List[List[str]] = list(split_list(product_ids, BATCH_SIZE))
+    
+    logging.info(f"Total batches: {len(batches)} (Batch size: {BATCH_SIZE})")
 
     all_failed_products: List[Dict[str, Any]] = []  # Danh sách lỗi tổng
 
@@ -154,6 +177,15 @@ async def main() -> None:
         # Lưu các sản phẩm hợp lệ
         if product_data:
             await save_to_json(product_data, f"{index+1}")
+            
+            # Lưu vào PostgreSQL database
+            if db_handler:
+                try:
+                    saved_count = db_handler.save_products(product_data)
+                    logging.info(f"Saved {saved_count} products to PostgreSQL database")
+                except Exception as e:
+                    logging.error(f"Failed to save to database: {e}")
+            
             processed_ids.extend([data['id'] for data in product_data])
             
         # Lưu sản phẩm lỗi
@@ -162,6 +194,14 @@ async def main() -> None:
         # Lưu checkpoint
         state = {"processed_ids": processed_ids}
         await save_checkpoint(state)
+    
+    # Đóng kết nối database
+    if db_handler:
+        try:
+            db_handler.close()
+            logging.info("Database connection closed")
+        except Exception as e:
+            logging.error(f"Error closing database connection: {e}")
 # Tạo thư mục logs nếu chưa có
 os.makedirs("logs", exist_ok=True)
 
@@ -177,7 +217,7 @@ logging.basicConfig(
 # Ghi log
 logging.info("Start")
 try:
-    nest_asyncio.apply()  # Apply nest_asyncio to allow nested event loops
+    nest_asyncio.apply() 
     asyncio.run(main())
 except ZeroDivisionError as e:
     logging.error(f"Error: {e}")
