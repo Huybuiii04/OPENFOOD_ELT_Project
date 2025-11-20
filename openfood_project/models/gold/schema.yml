@@ -1,0 +1,101 @@
+version: 2
+
+models:
+  - name: dim_product
+    description: Product dimension with SCD Type 2 - tracks product changes over time
+    columns:
+      - name: product_sk
+        description: Surrogate key for product
+        tests:
+          - unique
+          - not_null
+      - name: product_id
+        description: Natural key - product ID
+      - name: code
+        description: Product barcode
+      - name: product_name
+        description: Product name
+      - name: ingredients_text
+        description: Product ingredients
+      - name: nutriscore_grade
+        description: Nutriscore grade (A-E)
+      - name: valid_from
+        description: When this product version became valid
+      - name: valid_to
+        description: When this product version expired (null if current)
+      - name: is_current
+        description: Whether this is the current version
+
+  - name: dim_brand
+    description: Brand dimension with SCD Type 2
+    columns:
+      - name: brand_sk
+        description: Surrogate key for brand
+        tests:
+          - unique
+          - not_null
+      - name: brand_name
+        description: Brand name
+      - name: valid_from
+        description: When this brand version became valid
+      - name: valid_to
+        description: When this brand version expired (null if current)
+      - name: is_current
+        description: Whether this is the current version
+
+  - name: dim_category
+    description: Category dimension with SCD Type 2
+    columns:
+      - name: category_sk
+        description: Surrogate key for category
+        tests:
+          - unique
+          - not_null
+      - name: category_name
+        description: Category name
+      - name: valid_from
+        description: When this category version became valid
+      - name: valid_to
+        description: When this category version expired (null if current)
+      - name: is_current
+        description: Whether this is the current version
+
+  - name: dim_country
+    description: Country dimension with SCD Type 2
+    columns:
+      - name: country_sk
+        description: Surrogate key for country
+        tests:
+          - unique
+          - not_null
+      - name: country_code
+        description: Country code
+      - name: valid_from
+        description: When this country version became valid
+      - name: valid_to
+        description: When this country version expired (null if current)
+      - name: is_current
+        description: Whether this is the current version
+
+  - name: fact_nutrition
+    description: Nutrition facts bridge table - connects products with brands, categories, and countries
+    columns:
+      - name: fact_id
+        description: Fact table ID
+        tests:
+          - unique
+          - not_null
+      - name: product_sk
+        description: Foreign key to dim_product
+      - name: brand_sk
+        description: Foreign key to dim_brand
+      - name: category_sk
+        description: Foreign key to dim_category
+      - name: country_sk
+        description: Foreign key to dim_country
+      - name: energy_100g
+        description: Energy in kcal per 100g
+      - name: sugars_100g
+        description: Sugar content in grams per 100g
+      - name: load_time
+        description: When the fact was loaded

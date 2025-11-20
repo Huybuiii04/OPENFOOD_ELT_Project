@@ -1,0 +1,73 @@
+version: 2
+
+sources:
+  - name: raw
+    database: food
+    schema: raw
+    tables:
+      - name: products
+        description: Raw product data from OpenFoodFacts API
+        columns:
+          - name: id
+            description: Product ID
+          - name: code
+            description: Product barcode code
+          - name: product_name
+            description: Product name
+          - name: brands
+            description: Product brands (comma-separated)
+          - name: countries
+            description: Product countries (comma-separated)
+          - name: categories
+            description: Product categories (comma-separated)
+          - name: ingredients_text
+            description: Ingredients list
+          - name: nutriscore_grade
+            description: Nutriscore grade (A-E)
+          - name: energy_100g
+            description: Energy in kcal per 100g
+          - name: sugars_100g
+            description: Sugar content in grams per 100g
+
+models:
+  - name: stg_products
+    description: Cleaned and normalized products
+    columns:
+      - name: id
+        description: Product ID (primary key)
+        tests:
+          - unique
+          - not_null
+      - name: code
+        description: Product barcode code
+      - name: product_name
+        description: Product name
+      - name: nutriscore_grade
+        description: Nutriscore grade (uppercase)
+
+  - name: stg_brands
+    description: Exploded brands from products
+    columns:
+      - name: brand_id
+        description: Surrogate key for brand
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_categories
+    description: Exploded categories from products
+    columns:
+      - name: category_id
+        description: Surrogate key for category
+        tests:
+          - unique
+          - not_null
+
+  - name: stg_countries
+    description: Exploded countries from products
+    columns:
+      - name: country_id
+        description: Surrogate key for country
+        tests:
+          - unique
+          - not_null
