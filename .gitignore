@@ -1,0 +1,34 @@
+.env
+.env.*
+# Logs
+logs/
+Crawl_API/logs/
+airflow/logs/
+**/logs/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+
+# dbt
+target/
+dbt_modules/
+
+# Editor/OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Build/distribution
+dist/
+build/
+
+# Optional: local config files
+*.local
+
