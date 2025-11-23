@@ -33,7 +33,7 @@ async def fetch_page(session, page):
     # Rate limiting: ensure at least REQUEST_DELAY seconds between requests
     now = asyncio.get_event_loop().time()
     sleep_time = max(0, REQUEST_DELAY - (now - last_request_time))
-    if sleep_time > 0:
+    if sleep_time > 0: # dam bao 1 request cach request truoc it nhat REQUEST_DELAY giay
         await asyncio.sleep(sleep_time)
     last_request_time = asyncio.get_event_loop().time()
     

@@ -151,4 +151,3 @@ select
     loaded_at
 from cleaned_products
 where trim(product_name) != ''  -- Final filter to exclude empty product names
-
