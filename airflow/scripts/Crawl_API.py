@@ -49,17 +49,17 @@ async def fetch_page(session, page):
                 elif res.status == 429:  # Rate limit
                     logging.warning(f"Page {page} rate limited (429), attempt {attempt+1}/8")
                     if attempt < 7:
-                        wait_time = 10 * (2 ** attempt)  # 10s, 20s, 40s, 80s, 160s, 320s, 640s
+                        wait_time = 10 * (2 ** attempt)  
                         logging.info(f"Rate limited - waiting {wait_time}s")
                         await asyncio.sleep(wait_time)
-                else:
+                else: # other res.status
                     logging.warning(f"Page {page} HTTP {res.status}, attempt {attempt+1}/8")
                     if attempt < 7:
                         await asyncio.sleep(5 * (2 ** attempt))
-        except (asyncio.TimeoutError, aiohttp.ClientError) as e:
+        except (asyncio.TimeoutError, aiohttp.ClientError) as e: # Network errors
             logging.warning(f"Page {page} {type(e).__name__}, attempt {attempt+1}/8")
             if attempt < 7:
-                wait_time = 15 * (2 ** attempt)  # 15s, 30s, 60s, 120s, 240s...
+                wait_time = 15 * (2 ** attempt)  
                 logging.info(f"Waiting {wait_time}s before retry")
                 await asyncio.sleep(wait_time)
         except Exception as e:

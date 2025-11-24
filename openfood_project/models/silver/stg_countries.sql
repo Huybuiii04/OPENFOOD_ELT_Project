@@ -14,7 +14,6 @@ with products as (
 )
 
 select
-    {{ dbt_utils.generate_surrogate_key(['product_id', 'country_code']) }} as country_id,
     product_id,
     product_code,
     trim(country_code) as country_code,

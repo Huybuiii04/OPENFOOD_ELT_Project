@@ -14,7 +14,6 @@ with products as (
 )
 
 select
-    {{ dbt_utils.generate_surrogate_key(['product_id', 'category_name']) }} as category_id,
     product_id,
     product_code,
     trim(category_name) as category_name,
