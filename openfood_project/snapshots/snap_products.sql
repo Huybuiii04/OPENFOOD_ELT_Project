@@ -4,7 +4,7 @@
             target_schema='snapshots',
             unique_key='id',
             strategy='check',
-            check_cols=['code', 'product_name', 'ingredients_text', 'nutriscore_grade', 'energy_100g', 'sugars_100g']
+            check_cols=['code', 'product_name', 'ingredients_text', 'nutriscore_grade']
         )
     }}
     

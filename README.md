@@ -449,3 +449,10 @@ Internal Project - OpenFood Data Warehouse
 
 **Last Updated:** November 2025
 **Version:** 1.0.0
+
+
+
+dbt run --select models/gold --threads 8
+dbt run --select models/silver --threads 8
+dbt snapshot --threads 8
+ALTER WAREHOUSE COMPUTE_WH SET WAREHOUSE_SIZE = 'LARGE';
