@@ -37,4 +37,4 @@ with fact_base as (
     qualify row_number() over (partition by p.product_sk, b.brand_sk, c.category_sk, co.country_sk order by sp.loaded_at desc) = 1
 )
 
-select * from fact_base
+select * from fact_base #fact_nutrition
