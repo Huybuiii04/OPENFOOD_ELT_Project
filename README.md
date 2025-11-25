@@ -1,342 +1,150 @@
 # OpenFood Data Warehouse Project
 
-A complete data warehouse solution for OpenFoodFacts data using **Airflow**, **dbt**, and **Snowflake** with a modern medallion architecture (RAW → SILVER → GOLD).
+## 📋 Tổng quan Project
 
-## 📊 Architecture Overview
+Dự án xây dựng **Data Warehouse hoàn chỉnh** cho dữ liệu OpenFoodFacts sử dụng kiến trúc hiện đại **Medallion Architecture** (RAW → SILVER → GOLD). Project bao gồm ETL pipeline từ API crawling đến analytics-ready data.
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    OpenFoodFacts API                         │
-└────────────────────────┬────────────────────────────────────┘
-                         │
-                         ▼
-        ┌────────────────────────────────────┐
-        │  Airflow DAG: crawl_to_s3_v27     │
-        │  - Async crawler (CONCURRENCY=20) │
-        │  - Rate limiting & error handling │
-        │  - Checkpoint tracking            │
-        └────────────┬───────────────────────┘
-                     │
-                     ▼
-        ┌─────────────────────────────────┐
-        │  AWS S3 (raw-food-project)      │
-        │  - CSV files (10k rows per file)│
-        │  - Bronze layer storage         │
-        └────────────┬────────────────────┘
-                     │
-                     ▼
-        ┌──────────────────────────────────────┐
-        │  Airflow DAG: s3_to_snowflake_v4    │
-        │  - List S3 files                    │
-        │  - Load into Snowflake              │
-        │  - Daily schedule                   │
-        └────────────┬─────────────────────────┘
-                     │
-                     ▼
-        ┌──────────────────────────────────────┐
-        │      SNOWFLAKE: FOOD Database        │
-        │  ┌──────────────────────────────┐   │
-        │  │  RAW Layer                   │   │
-        │  │  - FOOD.RAW.PRODUCTS         │   │
-        │  │  - Raw data from API         │   │
-        │  └──────────┬───────────────────┘   │
-        │             │                       │
-        │             ▼ (dbt run)             │
-        │  ┌──────────────────────────────┐   │
-        │  │  SILVER Layer                │   │
-        │  │  - FOOD.SILVER.STG_PRODUCTS  │   │
-        │  │  - FOOD.SILVER.STG_BRANDS    │   │
-        │  │  - FOOD.SILVER.STG_CATEG.    │   │
-        │  │  - FOOD.SILVER.STG_COUNTRIES │   │
-        │  │                              │   │
-        │  │  ✓ Cleaned & normalized      │   │
-        │  │  ✓ Accents removed           │   │
-        │  │  ✓ Exploded dimensions       │   │
-        │  └──────────┬───────────────────┘   │
-        │             │                       │
-        │             ▼ (dbt run)             │
-        │  ┌──────────────────────────────┐   │
-        │  │  GOLD Layer (SCD Type 2)     │   │
-        │  │  - FOOD.GOLD.DIM_PRODUCT     │   │
-        │  │  - FOOD.GOLD.DIM_BRAND       │   │
-        │  │  - FOOD.GOLD.DIM_CATEGORY    │   │
-        │  │  - FOOD.GOLD.DIM_COUNTRY     │   │
-        │  │  - FOOD.GOLD.FACT_NUTRITION  │   │
-        │  │                              │   │
-        │  │  ✓ Surrogate keys            │   │
-        │  │  ✓ Historical tracking       │   │
-        │  │  ✓ valid_from/valid_to       │   │
-        │  │  ✓ is_current flags          │   │
-        │  └──────────────────────────────┘   │
-        └──────────────────────────────────────┘
-```
+### 🎯 Những gì đã thực hiện
 
-## 🏗️ Data Layers
+#### 1. **Data Ingestion & ETL Pipeline**
+- **Crawler bất đồng bộ**: Sử dụng aiohttp để crawl OpenFoodFacts API với concurrency 20
+- **Checkpoint tracking**: Theo dõi tiến độ crawl, resume được khi bị gián đoạn
+- **Rate limiting**: Tránh bị block API với delay 0.5s/request
+- **Error handling**: Retry logic và logging chi tiết
 
-### RAW Layer (FOOD.RAW)
-**Source:** OpenFoodFacts API via async crawler
+#### 2. **Data Storage & Processing**
+- **AWS S3**: Lưu trữ raw data dưới dạng CSV (10k rows/file)
+- **Snowflake**: Data warehouse chính với 3 layers
+- **dbt**: Transform data với 500k+ rows, SCD Type 2 cho dimensions
 
-**Tables:**
-- `PRODUCTS` - Raw product data with all original fields
+#### 3. **Data Quality & Governance**
+- **Data cleaning**: Loại bỏ accents, normalize text, handle NULLs
+- **Dimension explosion**: Tách comma-separated values thành individual rows
+- **SCD Type 2**: Historical tracking cho products, brands, categories, countries
+- **Data testing**: dbt tests cho unique keys, referential integrity
 
-**Characteristics:**
-- Minimal transformation
-- Direct from API ingestion
-- High volume (100k+ rows)
+#### 4. **Orchestration & Monitoring**
+- **Airflow DAGs**: 2 DAGs scheduled daily cho crawl và load
+- **Docker Compose**: Containerized environment
+- **Logging & Monitoring**: Chi tiết logs cho troubleshooting
 
----
+## 🛠️ Công cụ & Technologies
 
-### SILVER Layer (FOOD.SILVER)
-**Purpose:** Data cleaning, normalization, and staging
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| **Orchestration** | Apache Airflow | Schedule & monitor ETL jobs |
+| **Data Warehouse** | Snowflake | Store & process large datasets |
+| **Transformation** | dbt (Data Build Tool) | SQL-based data transformation |
+| **Storage** | AWS S3 | Raw data lake storage |
+| **Crawling** | Python (aiohttp, asyncio) | Async API data collection |
+| **Containerization** | Docker & Docker Compose | Environment consistency |
+| **Version Control** | Git | Code management |
 
-**Tables:**
-| Table | Purpose | Rows |
-|-------|---------|------|
-| `STG_PRODUCTS` | Cleaned products with normalized text | ~100k |
-| `STG_BRANDS` | Exploded brand dimension | ~150k |
-| `STG_CATEGORIES` | Exploded category dimension | ~200k |
-| `STG_COUNTRIES` | Exploded country dimension | ~50k |
+## 🏗️ Kiến trúc Data
 
-**Transformations Applied:**
-- ✅ **NULL Handling:** Coalesce to empty strings, filter empty names
-- ✅ **Text Normalization:** 
-  - Remove Vietnamese/French accents (á, à, ã, é, etc.)
-  - Lowercase for brands/categories/ingredients
-  - UPPERCASE for country codes
-- ✅ **Whitespace Cleanup:**
-  - Trim leading/trailing spaces
-  - Collapse multiple spaces to single space
-- ✅ **Special Character Removal:** Keep alphanumeric, hyphens, commas
-- ✅ **Dimension Explosion:** Split comma-separated values into individual rows
-- ✅ **Numeric Validation:** Energy > 0, Sugars >= 0
+### RAW Layer (Bronze)
+- **Source**: OpenFoodFacts API via async crawler
+- **Storage**: AWS S3 (CSV files)
+- **Snowflake Table**: `FOOD.RAW.PRODUCTS`
+- **Volume**: ~100k products
 
----
+### SILVER Layer (Cleaning & Staging)
+- **Transformations**:
+  - Text normalization (remove accents, lowercase)
+  - NULL handling & data validation
+  - Explode dimensions (brands, categories, countries)
+- **Tables**:
+  - `STG_PRODUCTS`: 100k rows
+  - `STG_BRANDS`: 150k rows (exploded)
+  - `STG_CATEGORIES`: 200k rows (exploded)
+  - `STG_COUNTRIES`: 50k rows (exploded)
 
-### GOLD Layer (FOOD.GOLD)
-**Purpose:** Business-ready dimensional and fact tables with SCD Type 2
+### GOLD Layer (Analytics Ready)
+- **SCD Type 2 Dimensions**:
+  - `DIM_PRODUCT`: Product master with history
+  - `DIM_BRAND`: Brand dimension
+  - `DIM_CATEGORY`: Category dimension
+  - `DIM_COUNTRY`: Country dimension
+- **Fact Table**:
+  - `FACT_NUTRITION`: Bridge table với metrics (energy, sugars)
+  - Volume: ~500k-1M rows (exploded combinations)
 
-**Dimensional Tables (with SCD Type 2):**
-
-#### `DIM_PRODUCT`
-```sql
-Columns: product_sk, product_id, code, product_name, 
-         ingredients_text, nutriscore_grade, 
-         valid_from, valid_to, is_current
-```
-- Tracks product changes over time
-- Hash detection for changes
-- Current flag for active records
-
-#### `DIM_BRAND`
-```sql
-Columns: brand_sk, brand_name, valid_from, valid_to, is_current
-```
-
-#### `DIM_CATEGORY`
-```sql
-Columns: category_sk, category_name, valid_from, valid_to, is_current
-```
-
-#### `DIM_COUNTRY`
-```sql
-Columns: country_sk, country_code, valid_from, valid_to, is_current
-```
-
-**Fact Table:**
-
-#### `FACT_NUTRITION`
-```sql
-Columns: fact_id, product_sk, brand_sk, category_sk, country_sk,
-         energy_100g, sugars_100g, load_time
-```
-- Bridge table connecting all dimensions
-- Nutrition metrics (energy, sugars per 100g)
-- Multiple fact rows per product (one per brand×category×country combination)
-
-**SCD Type 2 Features:**
-- Surrogate keys for each dimension
-- `valid_from` / `valid_to` timestamps
-- `is_current` boolean flag
-- Full historical tracking of changes
-- Hash-based change detection
-
----
-
-## 🚀 Getting Started
+## 🚀 Cách chạy Project
 
 ### Prerequisites
 - Python 3.11+
 - Docker & Docker Compose
-- dbt 1.10+
-- Snowflake account with credentials
+- AWS S3 credentials
+- Snowflake account
+- dbt CLI
 
-### Setup
+### Setup Steps
 
-#### 1. Clone Repository
-```bash
-git clone <repo-url>
-cd DE_Project3
-```
+1. **Clone & Setup Environment**
+   ```bash
+   git clone <repo-url>
+   cd DE_Project3
+   ```
 
-#### 2. Configure Environment Variables
-Create/update `.env` file:
-```env
-# Airflow
-AIRFLOW_DB_USER=airflow
-AIRFLOW_DB_PASSWORD=airflow
-AIRFLOW_DB_NAME=airflow
+2. **Configure Environment Variables**
+   ```bash
+   # Tạo file .env với credentials
+   AIRFLOW_DB_USER=airflow
+   AIRFLOW_DB_PASSWORD=airflow
+   AWS_ACCESS_KEY_ID=your-key
+   AWS_SECRET_ACCESS_KEY=your-secret
+   SNOWFLAKE_ACCOUNT=si00918.ap-southeast-1
+   SNOWFLAKE_USER=your-user
+   SNOWFLAKE_PASSWORD=your-password
+   ```
 
-# AWS S3
-AWS_ACCESS_KEY_ID=<your-key>
-AWS_SECRET_ACCESS_KEY=<your-secret>
-AWS_DEFAULT_REGION=ap-southeast-1
+3. **Start Airflow**
+   ```bash
+   docker-compose up -d
+   # Access: http://localhost:8080
+   ```
 
-# Snowflake
-SNOWFLAKE_ACCOUNT=si00918.ap-southeast-1
-SNOWFLAKE_USER=huybui04
-SNOWFLAKE_PASSWORD=<your-password>
-SNOWFLAKE_DATABASE=FOOD
-SNOWFLAKE_SCHEMA=RAW
-SNOWFLAKE_TABLE=PRODUCTS
-SNOWFLAKE_WAREHOUSE=COMPUTE_WH
-```
+4. **Setup dbt**
+   ```bash
+   cd openfood_project
+   dbt deps
+   dbt debug  # Verify connection
+   ```
 
-#### 3. Start Airflow
-```bash
-docker-compose up -d
-# Access at http://localhost:8080
-```
+5. **Run ETL Pipeline**
+   ```bash
+   # Crawl data to S3
+   airflow dags unpause crawl_to_s3_v27
 
-#### 4. Configure dbt
-```bash
-cd openfood_project
-dbt deps        # Install packages
-dbt debug       # Verify Snowflake connection
-```
+   # Load to Snowflake
+   airflow dags unpause s3_to_snowflake_v4
 
-#### 5. Run dbt Models
-```bash
-dbt run         # Build SILVER + GOLD layers
-dbt test        # Run data quality tests
-```
+   # Transform with dbt
+   dbt run  # Build SILVER + GOLD layers
+   dbt test # Run quality checks
+   ```
 
----
+## 📊 Sample Queries
 
-## 📋 DAGs Overview
-
-### `crawl_to_s3_v27` (Airflow)
-- **Schedule:** Daily @ 00:00 UTC
-- **Tasks:**
-  1. Create S3 bucket (if needed)
-  2. Run async crawler (OpenFoodFacts API)
-  3. Save checkpoint progress
-  4. Upload CSV to S3
-- **Features:**
-  - Async requests with CONCURRENCY=20
-  - Rate limiting (0.5s delay per request)
-  - Checkpoint-based resumption
-  - Error handling & logging
-
-### `s3_to_snowflake_v4` (Airflow)
-- **Schedule:** Daily @ 01:00 UTC
-- **Tasks:**
-  1. List CSV files from S3
-  2. Create Snowflake table (if needed)
-  3. Batch load data into FOOD.RAW.PRODUCTS
-- **Features:**
-  - Dependency: waits for crawl_to_s3 completion
-  - Automatic table creation
-  - Batch insert with error handling
-
----
-
-## 📊 dbt Models
-
-### Silver Models (Data Cleaning)
-```bash
-dbt run --select models/silver
-```
-Generates:
-- `stg_products` - 1 row per product
-- `stg_brands` - 1 row per product-brand combination
-- `stg_categories` - 1 row per product-category combination
-- `stg_countries` - 1 row per product-country combination
-
-### Gold Models (Dimensional/Fact)
-```bash
-dbt run --select models/gold
-```
-Generates:
-- `dim_product`, `dim_brand`, `dim_category`, `dim_country`
-- `fact_nutrition` - Bridge table with metrics
-
----
-
-## 🧪 Data Quality Tests
-
-Run all tests:
-```bash
-dbt test
-```
-
-Includes:
-- ✅ Unique key tests (product_sk, brand_sk, etc.)
-- ✅ Not null tests on primary keys
-- ✅ Referential integrity checks
-- ✅ Custom data quality validations
-
----
-
-## 📈 Metrics & Performance
-
-| Layer | Tables | Rows | Update Frequency | Purpose |
-|-------|--------|------|------------------|---------|
-| RAW | 1 | ~100k | Daily | Source data |
-| SILVER | 4 | ~500k | Daily | Cleaned data |
-| GOLD | 5 | ~500k | Daily | Analytics-ready |
-
-**Sample Query Times:**
-- STG_PRODUCTS: ~1s (100k rows)
-- FACT_NUTRITION: ~90s (500k rows, fact generation)
-
----
-
-## 🔍 Query Examples
-
-### Get products by nutriscore grade
+### Top products by nutriscore
 ```sql
-SELECT 
+SELECT
     p.product_name,
     p.nutriscore_grade,
-    COUNT(DISTINCT f.brand_sk) as num_brands,
-    COUNT(DISTINCT f.category_sk) as num_categories
+    COUNT(*) as brand_count
 FROM GOLD.DIM_PRODUCT p
 JOIN GOLD.FACT_NUTRITION f ON p.product_sk = f.product_sk
 WHERE p.is_current = true
 GROUP BY p.product_name, p.nutriscore_grade
-ORDER BY p.nutriscore_grade;
+ORDER BY nutriscore_grade;
 ```
 
-### Track product metadata changes (SCD Type 2)
+### Nutrition analysis by brand
 ```sql
-SELECT 
-    product_id,
-    product_name,
-    valid_from,
-    valid_to,
-    is_current
-FROM GOLD.DIM_PRODUCT
-WHERE product_id = 'xxxx'
-ORDER BY valid_from DESC;
-```
-
-### Nutrition facts by brand
-```sql
-SELECT 
+SELECT
     b.brand_name,
     AVG(f.energy_100g) as avg_energy,
-    AVG(f.sugars_100g) as avg_sugars,
-    COUNT(f.fact_id) as num_products
+    AVG(f.sugars_100g) as avg_sugars
 FROM GOLD.DIM_BRAND b
 JOIN GOLD.FACT_NUTRITION f ON b.brand_sk = f.brand_sk
 WHERE b.is_current = true
@@ -344,115 +152,33 @@ GROUP BY b.brand_name
 ORDER BY avg_energy DESC;
 ```
 
----
+## 🔧 Troubleshooting
 
-## 🛠️ Troubleshooting
+### Common Issues
+- **Airflow DAG not running**: Check `docker logs airflow-scheduler`
+- **dbt connection error**: Run `dbt debug`
+- **Snapshot slow**: Increase Snowflake warehouse size to LARGE
+- **S3 upload fails**: Verify AWS credentials
 
-### Airflow DAG not running
-```bash
-docker logs airflow-scheduler
-```
+### Performance Tuning
+- **Warehouse size**: `ALTER WAREHOUSE COMPUTE_WH SET WAREHOUSE_SIZE = 'LARGE';`
+- **dbt threads**: `dbt run --threads 8`
+- **Clustering**: Added cluster keys cho snapshots
 
-### dbt connection error
-```bash
-dbt debug
-# Check profiles.yml at ~/.dbt/profiles.yml
-```
+## 📈 Metrics & Performance
 
-### Snowflake query timeout
-- Increase warehouse size in profiles.yml
-- Run `ALTER WAREHOUSE COMPUTE_WH SET WAREHOUSE_SIZE = 'LARGE';`
-
-### S3 upload failing
-- Verify AWS credentials in `.env`
-- Check S3 bucket permissions
-- Ensure bucket name matches in Crawl_API.py
-
----
-
-## 📚 Project Structure
-
-```
-DE_Project3/
-├── .env                                 # Configuration
-├── docker-compose.yml                   # Airflow containers
-├── Crawl_API/                          # API crawler scripts
-│   ├── main.py
-│   ├── checkpoint.py
-│   ├── uploadS3.py
-│   └── logs/
-├── airflow/
-│   ├── dags/
-│   │   ├── crawl_to_s3_v27.py          # Crawler orchestration
-│   │   └── s3_to_snowflake_v4.py       # S3 to Snowflake loader
-│   ├── scripts/
-│   │   ├── Crawl_API.py
-│   │   ├── checkpoint.py
-│   │   └── uploadS3.py
-│   └── logs/                            # Airflow logs
-└── openfood_project/                    # dbt project
-    ├── dbt_project.yml
-    ├── packages.yml
-    ├── profiles.yml                     # dbt Snowflake config
-    ├── macros/
-    │   └── generate_schema_name.sql     # Custom schema naming
-    └── models/
-        ├── silver/                      # Staging layer
-        │   ├── stg_products.sql
-        │   ├── stg_brands.sql
-        │   ├── stg_categories.sql
-        │   ├── stg_countries.sql
-        │   └── schema.yml
-        └── gold/                        # Dimensional layer
-            ├── dim_product.sql
-            ├── dim_brand.sql
-            ├── dim_category.sql
-            ├── dim_country.sql
-            ├── fact_nutrition.sql
-            └── schema.yml
-```
-
----
-
-## 🔄 Data Flow Summary
-
-1. **Crawl Phase** (Airflow DAG: `crawl_to_s3_v27`)
-   - Async crawler hits OpenFoodFacts API
-   - Saves 10k rows per CSV file to S3
-   - Tracks progress with checkpoint
-
-2. **Load Phase** (Airflow DAG: `s3_to_snowflake_v4`)
-   - Lists CSV files from S3
-   - Batch inserts into FOOD.RAW.PRODUCTS
-
-3. **Transform Phase** (dbt: `dbt run`)
-   - SILVER: Clean, normalize, explode dimensions
-   - GOLD: Build dimensional model with SCD Type 2
-   - All data ready for analytics
-
----
+| Layer | Rows | Build Time | Notes |
+|-------|------|------------|-------|
+| RAW | ~100k | ~5 min | API crawl |
+| SILVER | ~500k | ~2 min | dbt transform |
+| GOLD | ~1M | ~5 min | SCD + fact generation |
 
 ## 📞 Contact & Support
 
-For issues or questions:
-1. Check Airflow logs: `docker logs airflow-scheduler`
-2. Check dbt logs: `target/run/` directory
-3. Query Snowflake tables directly for data validation
+Project: OpenFood Data Warehouse
+Author: Huybuiii04
+Date: November 2025
 
 ---
 
-## 📝 License
-
-Internal Project - OpenFood Data Warehouse
-
----
-
-**Last Updated:** November 2025
-**Version:** 1.0.0
-
-
-
-dbt run --select models/gold --threads 8
-dbt run --select models/silver --threads 8
-dbt snapshot --threads 8
-ALTER WAREHOUSE COMPUTE_WH SET WAREHOUSE_SIZE = 'LARGE';
+**Status**: ✅ Complete ETL pipeline with monitoring & testing
