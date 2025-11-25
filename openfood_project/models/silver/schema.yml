@@ -48,26 +48,23 @@ models:
   - name: stg_brands
     description: Exploded brands from products
     columns:
-      - name: brand_id
-        description: Surrogate key for brand
+      - name: brand_name
+        description: Brand name
         tests:
-          - unique
           - not_null
 
   - name: stg_categories
     description: Exploded categories from products
     columns:
-      - name: category_id
-        description: Surrogate key for category
+      - name: category_name
+        description: Category name
         tests:
-          - unique
           - not_null
 
   - name: stg_countries
     description: Exploded countries from products
     columns:
-      - name: country_id
-        description: Surrogate key for country
+      - name: country_code
+        description: Country code
         tests:
-          - unique
           - not_null

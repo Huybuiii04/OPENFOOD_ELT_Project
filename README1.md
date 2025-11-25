@@ -1,34 +1,34 @@
 # OpenFood Data Warehouse Project
 
-## 📋 Project Overview
+## 📋 Tổng quan Project
 
-This project builds a **complete Data Warehouse** for OpenFoodFacts data using modern **Medallion Architecture** (RAW → SILVER → GOLD). The project includes a full ETL pipeline, from API crawling to analytics-ready data.
+Dự án xây dựng **Data Warehouse hoàn chỉnh** cho dữ liệu OpenFoodFacts sử dụng kiến trúc hiện đại **Medallion Architecture** (RAW → SILVER → GOLD). Project bao gồm ETL pipeline từ API crawling đến analytics-ready data.
 
-### 🎯 What Has Been Implemented
+### 🎯 Những gì đã thực hiện
 
 #### 1. **Data Ingestion & ETL Pipeline**
-- **Asynchronous Crawler**: Uses aiohttp to crawl OpenFoodFacts API with 20 concurrent connections
-- **Checkpoint Tracking**: Monitors crawl progress, resumable on interruptions
-- **Rate Limiting**: Avoids API blocking with 0.5s delay per request
-- **Error Handling**: Retry logic and detailed logging
+- **Crawler bất đồng bộ**: Sử dụng aiohttp để crawl OpenFoodFacts API với concurrency 20
+- **Checkpoint tracking**: Theo dõi tiến độ crawl, resume được khi bị gián đoạn
+- **Rate limiting**: Tránh bị block API với delay 0.5s/request
+- **Error handling**: Retry logic và logging chi tiết
 
 #### 2. **Data Storage & Processing**
-- **AWS S3**: Stores raw data as CSV files (10k rows per file)
-- **Snowflake**: Main data warehouse with 3 layers
-- **dbt**: Transforms data with 500k+ rows, SCD Type 2 for dimensions
+- **AWS S3**: Lưu trữ raw data dưới dạng CSV (10k rows/file)
+- **Snowflake**: Data warehouse chính với 3 layers
+- **dbt**: Transform data với 500k+ rows, SCD Type 2 cho dimensions
 
 #### 3. **Data Quality & Governance**
-- **Data Cleaning**: Removes accents, normalizes text, handles NULLs
-- **Dimension Explosion**: Splits comma-separated values into individual rows
-- **SCD Type 2**: Historical tracking for products, brands, categories, countries
-- **Data Testing**: dbt tests for unique keys and referential integrity
+- **Data cleaning**: Loại bỏ accents, normalize text, handle NULLs
+- **Dimension explosion**: Tách comma-separated values thành individual rows
+- **SCD Type 2**: Historical tracking cho products, brands, categories, countries
+- **Data testing**: dbt tests cho unique keys, referential integrity
 
 #### 4. **Orchestration & Monitoring**
-- **Airflow DAGs**: 2 daily scheduled DAGs for crawling and loading
+- **Airflow DAGs**: 2 DAGs scheduled daily cho crawl và load
 - **Docker Compose**: Containerized environment
-- **Logging & Monitoring**: Detailed logs for troubleshooting
+- **Logging & Monitoring**: Chi tiết logs cho troubleshooting
 
-## 🛠️ Tools & Technologies
+## 🛠️ Công cụ & Technologies
 
 | Component | Technology | Purpose |
 |-----------|------------|---------|
@@ -40,7 +40,7 @@ This project builds a **complete Data Warehouse** for OpenFoodFacts data using m
 | **Containerization** | Docker & Docker Compose | Environment consistency |
 | **Version Control** | Git | Code management |
 
-## 🏗️ Data Architecture
+## 🏗️ Kiến trúc Data
 
 ![Medallion Architecture Diagram](images/architecture_diagram.png)
 
@@ -68,10 +68,10 @@ This project builds a **complete Data Warehouse** for OpenFoodFacts data using m
   - `DIM_CATEGORY`: Category dimension
   - `DIM_COUNTRY`: Country dimension
 - **Fact Table**:
-  - `FACT_NUTRITION`: Nutrition metrics with bridge connections
+  - `FACT_NUTRITION`: Bridge table với metrics (energy, sugars)
   - Volume: ~500k-1M rows (exploded combinations)
 
-## 🚀 How to Run the Project
+## 🚀 Cách chạy Project
 
 ### Prerequisites
 - Python 3.11+
@@ -90,7 +90,7 @@ This project builds a **complete Data Warehouse** for OpenFoodFacts data using m
 
 2. **Configure Environment Variables**
    ```bash
-   # Create .env file with credentials
+   # Tạo file .env với credentials
    AIRFLOW_DB_USER=airflow
    AIRFLOW_DB_PASSWORD=airflow
    AWS_ACCESS_KEY_ID=your-key
@@ -165,7 +165,7 @@ ORDER BY avg_energy DESC;
 ### Performance Tuning
 - **Warehouse size**: `ALTER WAREHOUSE COMPUTE_WH SET WAREHOUSE_SIZE = 'LARGE';`
 - **dbt threads**: `dbt run --threads 8`
-- **Clustering**: Added cluster keys for snapshots
+- **Clustering**: Added cluster keys cho snapshots
 
 ## 📈 Metrics & Performance
 
@@ -183,3 +183,4 @@ Date: November 2025
 
 ---
 
+**Status**: ✅ Complete ETL pipeline with monitoring & testing

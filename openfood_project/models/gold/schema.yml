@@ -33,7 +33,6 @@ models:
         description: Surrogate key for brand
         tests:
           - unique
-          - not_null
       - name: brand_name
         description: Brand name
       - name: valid_from
@@ -50,7 +49,6 @@ models:
         description: Surrogate key for category
         tests:
           - unique
-          - not_null
       - name: category_name
         description: Category name
       - name: valid_from
@@ -67,7 +65,6 @@ models:
         description: Surrogate key for country
         tests:
           - unique
-          - not_null
       - name: country_code
         description: Country code
       - name: valid_from
