@@ -135,6 +135,14 @@ cleaned_products as (
         
         loaded_at
     from raw_products
+),
+
+-- Dedup để đảm bảo id là unique (giữ record mới nhất)
+dedup as (
+    select *,
+           row_number() over(partition by id order by loaded_at desc) as rn
+    from cleaned_products
+    where trim(product_name) != ''
 )
 
 select
@@ -149,5 +157,5 @@ select
     energy_100g,
     sugars_100g,
     loaded_at
-from cleaned_products
-where trim(product_name) != ''  -- Final filter to exclude empty product names
+from dedup
+where rn = 1

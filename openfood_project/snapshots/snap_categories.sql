@@ -2,17 +2,16 @@
     {{
         config(
             target_schema='snapshots',
-            unique_key=['product_id', 'category_name'],
+            unique_key='category_name',
             strategy='check',
             check_cols=['category_name']
         )
     }}
     
-    select
-        product_id,
-        product_code,
+    select distinct
         category_name,
-        loaded_at
+        current_timestamp() as loaded_at
     from {{ ref('stg_categories') }}
+    where category_name is not null and trim(category_name) != ''
     
 {% endsnapshot %}
