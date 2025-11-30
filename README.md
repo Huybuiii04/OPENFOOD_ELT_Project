@@ -168,11 +168,11 @@ ORDER BY avg_energy DESC;
 
 ## 📈 Metrics & Performance
 
-| Layer | Rows | Build Time | Notes |
-|-------|------|------------|-------|
-| RAW | ~100k | ~5 min | API crawl |
-| SILVER | ~500k | ~2 min | dbt transform |
-| GOLD | ~1M | ~5 min | SCD + fact generation |
+| Layer |  Notes |
+|-------|-------|
+| RAW |  API crawl |
+| SILVER | dbt transform |
+| GOLD |   SCD + fact generation |
 
 ## 📞 Contact & Support
 
