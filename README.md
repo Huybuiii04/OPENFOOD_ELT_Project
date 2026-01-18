@@ -41,8 +41,7 @@ This project builds a **complete Data Warehouse** for OpenFoodFacts data using m
 | **Version Control** | Git | Code management |
 
 ## 🏗️ Data Architecture
-
-![Medallion Architecture Diagram](images/architecture_diagram.png)
+<img width="1333" height="773" alt="image" src="https://github.com/user-attachments/assets/eb9e6426-677d-4174-9494-9c0406d4fd71" />
 
 ### RAW Layer (Bronze)
 - **Source**: OpenFoodFacts API via async crawler
@@ -169,11 +168,11 @@ ORDER BY avg_energy DESC;
 
 ## 📈 Metrics & Performance
 
-| Layer | Rows | Build Time | Notes |
-|-------|------|------------|-------|
-| RAW | ~100k | ~5 min | API crawl |
-| SILVER | ~500k | ~2 min | dbt transform |
-| GOLD | ~1M | ~5 min | SCD + fact generation |
+| Layer |  Notes |
+|-------|-------|
+| RAW |  API crawl |
+| SILVER | dbt transform |
+| GOLD |   SCD + fact generation |
 
 ## 📞 Contact & Support
 
