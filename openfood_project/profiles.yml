@@ -1,0 +1,17 @@
+# Snowflake connection profile for openfood_project
+# Account: SB30236, Region: AWS_AP_SOUTHEAST_1
+
+openfood_project:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      account: sb30236.ap-southeast-1
+      user: huybuii04
+      password: "NR!A.XNmM5zdEdw"
+      role: ACCOUNTADMIN
+      database: FOOD
+      warehouse: COMPUTE_WH
+      schema: RAW
+      threads: 4
+      client_session_keep_alive: False

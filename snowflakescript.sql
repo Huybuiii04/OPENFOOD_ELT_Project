@@ -1,0 +1,84 @@
+USE ROLE ACCOUNTADMIN;
+
+USE ROLE ACCOUNTADMIN;
+CREATE DATABASE IF NOT EXISTS FOOD;
+CREATE SCHEMA IF NOT EXISTS FOOD.RAW;
+
+USE DATABASE FOOD;
+USE SCHEMA RAW;
+
+
+
+CREATE STORAGE INTEGRATION raw_food_s3_int
+TYPE = EXTERNAL_STAGE
+STORAGE_PROVIDER = S3
+ENABLED = TRUE
+STORAGE_AWS_ROLE_ARN = 'arn:aws:iam::035934723811:role/S3tosnowflake'
+STORAGE_ALLOWED_LOCATIONS = ('s3://raw-food-project/bronze/');
+
+DESC STORAGE INTEGRATION raw_food_s3_int;
+
+
+CREATE OR REPLACE STAGE s3_food_stage
+  STORAGE_INTEGRATION = raw_food_s3_int
+  URL = 's3://raw-food-project/bronze/'
+  FILE_FORMAT = (
+    TYPE = 'CSV'
+    FIELD_DELIMITER = ','
+    SKIP_HEADER = 1
+    FIELD_OPTIONALLY_ENCLOSED_BY = '"'
+    NULL_IF = ('', 'NULL')
+    ERROR_ON_COLUMN_COUNT_MISMATCH = FALSE
+  );
+
+
+-- Test kết nối
+LIST @s3_food_stage;
+
+CREATE OR REPLACE TABLE products_raw (
+  id STRING,
+  code STRING,
+  product_name STRING,
+  brands STRING,
+  countries STRING,
+  categories STRING,
+  ingredients_text STRING,
+  nutriscore_grade STRING,
+  energy_100g FLOAT,
+  sugars_100g FLOAT
+);
+
+
+COPY INTO products_raw
+FROM @s3_food_stage
+PATTERN = '.*product_part_.*\\.csv'
+ON_ERROR = 'CONTINUE';
+
+SELECT COUNT(*) FROM products_raw;
+
+
+SELECT CURRENT_ACCOUNT();
+SHOW ACCOUNTS;
+SHOW WAREHOUSES;
+
+SELECT 
+    CURRENT_ACCOUNT() AS account,
+    CURRENT_REGION() AS region,
+    LOWER(CURRENT_ACCOUNT()) || '.' || LOWER(REPLACE(CURRENT_REGION(), '_', '-')) AS account_identifier;
+
+
+SELECT CURRENT_USER();
+
+
+
+-- Check data counts
+SELECT 'RAW' AS layer, COUNT(*) FROM FOOD.RAW.PRODUCTS_RAW
+UNION ALL
+SELECT 'SILVER - Products', COUNT(*) FROM FOOD.SILVER.STG_PRODUCTS
+UNION ALL
+SELECT 'GOLD - Fact', COUNT(*) FROM FOOD.GOLD.FACT_NUTRITION
+UNION ALL
+SELECT 'GOLD - Dim Product', COUNT(*) FROM FOOD.GOLD.DIM_PRODUCT;
+
+
+

@@ -2,11 +2,12 @@ version: 2
 
 sources:
   - name: raw
-    database: food
-    schema: raw
+    database: FOOD
+    schema: RAW
     tables:
       - name: products
-        description: Raw product data from OpenFoodFacts API
+        identifier: PRODUCTS_RAW
+        description: Raw product data from OpenFoodFacts API loaded from S3
         columns:
           - name: id
             description: Product ID
